@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Dashboard</title>
+   <style>
+       body {
+           margin: 0;
+           padding: 0;
+           font-family: Arial, sans-serif;
+           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+           min-height: 100vh;
+       }
+
+       .navbar {
+           background: white;
+           padding: 1rem;
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+       }
+
+       .logo {
+           height: 60px;
+       }
+
+       .menu-icon {
+           cursor: pointer;
+           padding: 10px;
+           position: relative;
+       }
+
+       .menu-icon span {
+           display: block;
+           width: 25px;
+           height: 3px;
+           background: #333;
+           margin: 5px 0;
+       }
+
+       .dropdown {
+           position: absolute;
+           right: 20px;
+           top: 60px;
+           background: white;
+           border-radius: 4px;
+           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+           display: none;
+           z-index: 1000;
+       }
+
+       .dropdown.show {
+           display: block;
+       }
+
+       .dropdown a {
+           display: block;
+           padding: 12px 20px;
+           text-decoration: none;
+           color: #333;
+           transition: background-color 0.3s;
+       }
+
+       .dropdown a:hover {
+           background-color: #f5f7fa;
+       }
+
+       .content {
+           padding: 2rem;
+           margin-top: 1rem;
+       }
+
+       .grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+           gap: 2rem;
+       }
+
+       .card {
+           background: white;
+           border-radius: 8px;
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+           overflow: hidden;
+       }
+
+       .card h2 {
+           margin: 0;
+           padding: 1rem;
+           background: #0066ff;
+           color: white;
+       }
+
+       table {
+           width: 100%;
+           border-collapse: collapse;
+       }
+
+       th, td {
+           padding: 12px;
+           text-align: left;
+           border-bottom: 1px solid #eee;
+       }
+
+       th {
+           background-color: #f8f9fa;
+           font-weight: 600;
+           color: #333;
+       }
+
+       tr:hover {
+           background-color: #f8f9fa;
+       }
+
+       /* Styles pour les alertes */
+       .alert-type {
+           display: flex;
+           align-items: center;
+           font-weight: 500;
+       }
+
+       .alert-indicator {
+           display: inline-block;
+           width: 10px;
+           height: 10px;
+           border-radius: 50%;
+           margin-right: 8px;
+       }
+
+       .alert-indicator.arp-flood {
+           background-color: #dc3545;  /* Rouge pour ARP flood */
+       }
+
+       .alert-indicator.mitm {
+           background-color: #fd7e14;  /* Orange pour MITM */
+       }
+
+       .status {
+           display: inline-block;
+           width: 10px;
+           height: 10px;
+           border-radius: 50%;
+           margin-right: 8px;
+       }
+
+       .status.online {
+           background-color: #28a745;
+       }
+
+       .status.offline {
+           background-color: #dc3545;
+       }
+
+       /* Style pour l'ID des alertes */
+       table td:first-child {
+           font-weight: bold;
+           color: #0066ff;
+       }
+   </style>
+</head>
+<body>
+   <nav class="navbar">
+       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SPC Logo" class="logo">
+       <div class="menu-icon" onclick="toggleMenu()">
+           <span></span>
+           <span></span>
+           <span></span>
+       </div>
+       <div class="dropdown" id="menuDropdown">
+        <a href="{{ url_for('index') }}">Accueil</a>
+        <a href="{{ url_for('trafic') }}">Trafic</a>
+        <a href="{{ url_for('statistics_page') }}">Statistiques</a>
+        <a href="#">Paramètres</a>
+        <a href="{{ url_for('logout') }}">Se déconnecter</a>
+    </div>
+   </nav>
+
+   <div class="content">
+       <div class="grid">
+           <div class="card">
+               <h2>Top 10 alertes</h2>
+               <table id="alert-table">
+                   <thead>
+                       <tr>
+                           <th>ID</th>
+                           <th>Date</th>
+                           <th>Agent</th>
+                           <th>Type d'alerte</th>
+                           <th>Nb. Paquets</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       {% for alert in alerts %}
+                       <tr>
+                           <td>#{{ alert.id }}</td>
+                           <td>{{ alert.timestamp }}</td>
+                           <td>{{ alert.agent_name }}</td>
+                           <td>
+                               <div class="alert-type">
+                                   {% if alert.alert_type == 'arp_flood' %}
+                                   <span class="alert-indicator arp-flood"></span>
+                                   ARP Flooding
+                                   {% elif alert.alert_type == 'mitm' %}
+                                   <span class="alert-indicator mitm"></span>
+                                   Man in the Middle
+                                   {% else %}
+                                   <span class="alert-indicator"></span>
+                                   {{ alert.alert_type }}
+                                   {% endif %}
+                               </div>
+                           </td>
+                           <td>{{ alert.packet_count }} paquets</td>
+                       </tr>
+                       {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+
+           <div class="card">
+               <h2>Agents connectés</h2>
+               <table>
+                   <thead>
+                       <tr>
+                           <th>Statut</th>
+                           <th>Agent</th>
+                           <th>Dernière activité</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       {% for agent in agents %}
+                       <tr>
+                           <td><span class="status {{ 'online' if agent.is_active else 'offline' }}"></span></td>
+                           <td>{{ agent.agent_name }}</td>
+                           <td>{{ agent.last_seen }}</td>
+                       </tr>
+                       {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+       </div>
+   </div>
+
+   <script>
+       function toggleMenu() {
+           document.getElementById('menuDropdown').classList.toggle('show');
+       }
+
+       window.onclick = function(event) {
+           if (!event.target.matches('.menu-icon') && !event.target.matches('.menu-icon span')) {
+               var dropdowns = document.getElementsByClassName("dropdown");
+               for (var i = 0; i < dropdowns.length; i++) {
+                   var openDropdown = dropdowns[i];
+                   if (openDropdown.classList.contains('show')) {
+                       openDropdown.classList.remove('show');
+                   }
+               }
+           }
+       }
+
+       async function loadAlerts() {
+           try {
+               const response = await fetch('/api/alerts');
+               const alerts = await response.json();
+               const tbody = document.querySelector('#alert-table tbody');
+               
+               // Limite aux 10 dernières alertes
+               const recentAlerts = alerts.slice(0, 10);
+               
+               tbody.innerHTML = recentAlerts.map(alert => `
+                   <tr>
+                       <td>#${alert.id}</td>
+                       <td>${alert.timestamp}</td>
+                       <td>${alert.agent_name}</td>
+                       <td>
+                           <div class="alert-type">
+                               <span class="alert-indicator ${alert.alert_type === 'arp_flood' ? 'arp-flood' : 'mitm'}"></span>
+                               ${alert.alert_type === 'arp_flood' ? 'ARP Flooding' : 
+                                 alert.alert_type === 'mitm' ? 'Man in the Middle' : 
+                                 alert.alert_type}
+                           </div>
+                       </td>
+                       <td>${alert.packet_count} paquets</td>
+                   </tr>
+               `).join('');
+           } catch (error) {
+               console.error('Erreur lors du chargement des alertes:', error);
+           }
+       }
+
+       // Rafraîchir les alertes toutes les 10 secondes
+       setInterval(loadAlerts, 10000);
+
+       // Charger les alertes au démarrage
+       loadAlerts();
+   </script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPC - Trafic Réseau</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            box-sizing: border-box;
+        }
+
+        .logo {
+            height: 60px;
+        }
+
+        .menu-icon {
+            cursor: pointer;
+            padding: 10px;
+            position: relative;
+        }
+
+        .menu-icon span {
+            display: block;
+            width: 25px;
+            height: 3px;
+            background: #333;
+            margin: 5px 0;
+            transition: 0.4s;
+        }
+
+        .dropdown {
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1000;
+        }
+
+        .dropdown.show {
+            display: block;
+        }
+
+        .dropdown a {
+            display: block;
+            padding: 12px 20px;
+            text-decoration: none;
+            color: #333;
+            transition: background-color 0.3s;
+        }
+
+        .dropdown a:hover {
+            background-color: #f5f7fa;
+        }
+
+        .content {
+            margin-top: 80px;
+            padding: 2rem;
+        }
+
+        .filters {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .filters input, .filters select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .filters button {
+            padding: 0.5rem 1rem;
+            background: #0066ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .filters button:hover {
+            background: #0052cc;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #0066ff;
+            color: white;
+            padding: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-info {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            padding: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: #333;
+            font-weight: 600;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            color: #444;
+        }
+
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .packet-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        .packet-type.tcp {
+            background-color: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .packet-type.udp {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        .packet-type.icmp {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .packet-type.arp {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .packet-type.other {
+            background-color: #fafafa;
+            color: #616161;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 1rem;
+        }
+
+        .pagination a {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .pagination a:hover {
+            background: #f5f7fa;
+        }
+
+        .pagination .active {
+            background: #0066ff;
+            color: white;
+            border-color: #0066ff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SPC Logo" class="logo">
+        <div class="menu-icon" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="dropdown" id="menuDropdown">
+            <a href="{{ url_for('index') }}">Accueil</a>
+            <a href="{{ url_for('trafic') }}">Trafic</a>
+            <a href="{{ url_for('statistics_page') }}">Statistiques</a>
+            <a href="#">Paramètres</a>
+            <a href="{{ url_for('logout') }}">Se déconnecter</a>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div class="filters">
+            <form method="get" action="{{ url_for('trafic') }}">
+                <input type="text" name="ip" placeholder="Filtrer par IP" value="{{ ip_filter }}">
+                <select name="type">
+                    <option value="">Tous les types</option>
+                    {% for type in packet_types %}
+                    <option value="{{ type }}" {% if type == packet_type %}selected{% endif %}>{{ type }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Filtrer</button>
+                {% if ip_filter or packet_type %}
+                <a href="{{ url_for('trafic') }}" class="btn">Réinitialiser</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                Trafic Réseau
+                <span class="refresh-info">Actualisation automatique : <span id="countdown">10</span>s</span>
+            </div>
+            <div class="table-container">
+                <table id="trafficTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Agent</th>
+                            <th>Source IP</th>
+                            <th>Source MAC</th>
+                            <th>Destination IP</th>
+                            <th>Destination MAC</th>
+                            <th>Type</th>
+                            <th>Horodatage</th>
+                            <th>Résumé</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.id }}</td>
+                            <td>{{ log.agent_name }}</td>
+                            <td>{{ log.source_ip }}</td>
+                            <td>{{ log.source_mac }}</td>
+                            <td>{{ log.destination_ip }}</td>
+                            <td>{{ log.destination_mac }}</td>
+                            <td>
+                                <span class="packet-type {{ log.packet_type.lower() if log.packet_type else 'other' }}">
+                                    {{ log.packet_type if log.packet_type else 'Unknown' }}
+                                </span>
+                            </td>
+                            <td>{{ log.timestamp }}</td>
+                            <td>{{ log.summary }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination">
+                {% if pagination.has_prev %}
+                    <a href="{{ url_for('trafic', page=pagination.prev_num, ip=ip_filter, type=packet_type) }}">&laquo; Précédent</a>
+                {% endif %}
+
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <a href="{{ url_for('trafic', page=page, ip=ip_filter, type=packet_type) }}"
+                           class="{{ 'active' if page == pagination.page else '' }}">{{ page }}</a>
+                    {% else %}
+                        <span>...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if pagination.has_next %}
+                    <a href="{{ url_for('trafic', page=pagination.next_num, ip=ip_filter, type=packet_type) }}">Suivant &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('menuDropdown').classList.toggle('show');
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.menu-icon') && !event.target.matches('.menu-icon span')) {
+                var dropdowns = document.getElementsByClassName("dropdown");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        let countdown = 10;
+        
+        function updateCountdown() {
+            document.getElementById('countdown').textContent = countdown;
+            countdown--;
+            
+            if (countdown < 0) {
+                countdown = 10;
+                refreshData();
+            }
+        }
+
+        function refreshData() {
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const newDoc = parser.parseFromString(html, 'text/html');
+                    const newTable = newDoc.getElementById('trafficTable');
+                    document.getElementById('trafficTable').innerHTML = newTable.innerHTML;
+                })
+                .catch(error => console.error('Erreur lors de l\'actualisation :', error));
+        }
+
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>

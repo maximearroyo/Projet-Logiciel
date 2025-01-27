@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Statistiques des Paquets</title>
+   <style>
+       body {
+           margin: 0;
+           padding: 0;
+           font-family: Arial, sans-serif;
+           background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+           min-height: 100vh;
+       }
+
+       .navbar {
+           background: white;
+           padding: 1rem;
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+           display: flex;
+           justify-content: space-between;
+           align-items: center;
+       }
+
+       .logo {
+           height: 60px;
+       }
+
+       .menu-icon {
+           cursor: pointer;
+           padding: 10px;
+           position: relative;
+       }
+
+       .menu-icon span {
+           display: block;
+           width: 25px;
+           height: 3px;
+           background: #333;
+           margin: 5px 0;
+       }
+
+       .dropdown {
+           position: absolute;
+           right: 20px;
+           top: 60px;
+           background: white;
+           border-radius: 4px;
+           box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+           display: none;
+           z-index: 1000;
+       }
+
+       .dropdown.show {
+           display: block;
+       }
+
+       .dropdown a {
+           display: block;
+           padding: 12px 20px;
+           text-decoration: none;
+           color: #333;
+           transition: background-color 0.3s;
+       }
+
+       .dropdown a:hover {
+           background-color: #f5f7fa;
+       }
+
+       .content {
+           padding: 2rem;
+           margin-top: 1rem;
+       }
+
+       .grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+           gap: 2rem;
+       }
+
+       .card {
+           background: white;
+           border-radius: 8px;
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+           overflow: hidden;
+       }
+
+       .card h2 {
+           margin: 0;
+           padding: 1rem;
+           background: #0066ff;
+           color: white;
+       }
+
+       canvas {
+           padding: 1rem;
+       }
+   </style>
+</head>
+<body>
+   <nav class="navbar">
+       <img src="{{ url_for('static', filename='images/logo.png') }}" alt="SPC Logo" class="logo">
+       <div class="menu-icon" onclick="toggleMenu()">
+           <span></span>
+           <span></span>
+           <span></span>
+       </div>
+       <div class="dropdown" id="menuDropdown">
+           <a href="{{ url_for('index') }}">Accueil</a>
+           <a href="{{ url_for('trafic') }}">Trafic</a>
+           <a href="{{ url_for('statistics_page') }}">Statistiques</a>
+           <a href="#">Paramètres</a>
+           <a href="{{ url_for('logout') }}">Se déconnecter</a>
+       </div>
+   </nav>
+
+   <div class="content">
+       <div class="grid">
+           <div class="card">
+               <h2>Paquets par Type</h2>
+               <canvas id="packetsByTypeChart" width="400" height="200"></canvas>
+           </div>
+
+           <div class="card">
+               <h2>I/O par Agent (24h)</h2>
+               <canvas id="ioStatsChart" width="400" height="200"></canvas>
+           </div>
+
+           <div class="card">
+               <h2>Paquets par Heure (24h)</h2>
+               <canvas id="packetsByHourChart" width="400" height="200"></canvas>
+           </div>
+
+           <div class="card">
+               <h2>Top IP Sources</h2>
+               <canvas id="topIpSourcesChart" width="400" height="200"></canvas>
+           </div>
+
+           <div class="card">
+               <h2>Évolution des Paquets dans le Temps</h2>
+               <canvas id="packetsOverTimeChart" width="400" height="200"></canvas>
+           </div>
+       </div>
+   </div>
+
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <script>
+       function toggleMenu() {
+           document.getElementById('menuDropdown').classList.toggle('show');
+       }
+
+       window.onclick = function(event) {
+           if (!event.target.matches('.menu-icon') && !event.target.matches('.menu-icon span')) {
+               var dropdowns = document.getElementsByClassName("dropdown");
+               for (var i = 0; i < dropdowns.length; i++) {
+                   var openDropdown = dropdowns[i];
+                   if (openDropdown.classList.contains('show')) {
+                       openDropdown.classList.remove('show');
+                   }
+               }
+           }
+       }
+
+       fetch('/api/statistics')
+           .then(response => response.json())
+           .then(data => {
+               const packetsByType = data.packets_by_type;
+               const types = packetsByType.map(p => p.type);
+               const counts = packetsByType.map(p => p.count);
+
+               new Chart(document.getElementById('packetsByTypeChart'), {
+                   type: 'bar',
+                   data: {
+                       labels: types,
+                       datasets: [{
+                           label: 'Nombre de Paquets',
+                           data: counts,
+                           backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                           borderColor: 'rgba(75, 192, 192, 1)',
+                           borderWidth: 1
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       plugins: {
+                           legend: { position: 'top' },
+                           title: { display: true, text: 'Paquets par Type' }
+                       }
+                   }
+               });
+
+               const ioStats = data.io_stats;
+               const agents = ioStats.map(io => io.agent);
+               const ioCounts = ioStats.map(io => io.count);
+
+               new Chart(document.getElementById('ioStatsChart'), {
+                   type: 'line',
+                   data: {
+                       labels: agents,
+                       datasets: [{
+                           label: 'Nombre de Paquets (24h)',
+                           data: ioCounts,
+                           backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                           borderColor: 'rgba(153, 102, 255, 1)',
+                           borderWidth: 1
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       plugins: {
+                           legend: { position: 'top' },
+                           title: { display: true, text: 'I/O Paquets par Agent (24h)' }
+                       }
+                   }
+               });
+
+               fetch('/api/packets_by_hour')
+                   .then(response => response.json())
+                   .then(hourData => {
+                       const hours = hourData.map(p => p.hour);
+                       const hourCounts = hourData.map(p => p.count);
+
+                       new Chart(document.getElementById('packetsByHourChart'), {
+                           type: 'line',
+                           data: {
+                               labels: hours,
+                               datasets: [{
+                                   label: 'Nombre de Paquets par Heure',
+                                   data: hourCounts,
+                                   backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                                   borderColor: 'rgba(255, 159, 64, 1)',
+                                   borderWidth: 1
+                               }]
+                           },
+                           options: {
+                               responsive: true,
+                               plugins: {
+                                   legend: { position: 'top' },
+                                   title: { display: true, text: 'Paquets par Heure (24h)' }
+                               }
+                           }
+                       });
+                   });
+
+               const topIpSources = data.top_ip_sources;
+               const ips = topIpSources.map(ip => ip.address);
+               const ipCounts = topIpSources.map(ip => ip.count);
+
+               new Chart(document.getElementById('topIpSourcesChart'), {
+                   type: 'bar',
+                   data: {
+                       labels: ips,
+                       datasets: [{
+                           label: 'Occurrences',
+                           data: ipCounts,
+                           backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                           borderColor: 'rgba(54, 162, 235, 1)',
+                           borderWidth: 1
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       plugins: {
+                           legend: { position: 'top' },
+                           title: { display: true, text: 'Top IP Sources' }
+                       }
+                   }
+               });
+
+               const packetsOverTime = data.packets_over_time;
+               const timestamps = packetsOverTime.map(p => p.timestamp);
+               const packetCounts = packetsOverTime.map(p => p.count);
+
+               new Chart(document.getElementById('packetsOverTimeChart'), {
+                   type: 'line',
+                   data: {
+                       labels: timestamps,
+                       datasets: [{
+                           label: 'Nombre de Paquets',
+                           data: packetCounts,
+                           backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                           borderColor: 'rgba(75, 192, 192, 1)',
+                           borderWidth: 1
+                       }]
+                   },
+                   options: {
+                       responsive: true,
+                       plugins: {
+                           legend: { position: 'top' },
+                           title: { display: true, text: 'Évolution des Paquets dans le Temps' }
+                       }
+                   }
+               });
+           })
+           .catch(error => console.error('Erreur lors du chargement des statistiques:', error));
+   </script>
+</body>
+</html>
